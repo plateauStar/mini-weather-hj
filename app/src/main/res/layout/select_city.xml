@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <RelativeLayout android:layout_width="match_parent"
     android:layout_height="45dp"
     android:background="#ffcd2626">
     <TextView
@@ -27,5 +31,10 @@
         android:background="#A71717"
         android:gravity="center"
         />
+    </RelativeLayout>
+    <ListView
+        android:id="@+id/city_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"></ListView>
 
-</RelativeLayout>
+</LinearLayout>

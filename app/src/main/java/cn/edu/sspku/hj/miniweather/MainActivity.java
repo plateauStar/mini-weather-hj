@@ -42,7 +42,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private ImageView weatherImg, pmImg;
 
     private Handler mHandler = new Handler() {
-        public void handleMessage(android.os.Message msg) {
+        public void handleMessage(android.os.Message msg) { //lamda表达式
             switch (msg.what) {
                 case UPDATE_TODAY_WEATHER:
                     updateTodayWeather((TodayWeather) msg.obj);
@@ -70,6 +70,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         mCitySelect = (ImageView) findViewById(R.id.title_city_manager);
         mCitySelect.setOnClickListener(this);
         initView();
+//        queryWeatherCode("101020100");
     }
 
     void initView() {
@@ -105,8 +106,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             startActivityForResult(i, 1);
         }
         if (view.getId() == R.id.title_update_btn) {
-            SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE);
-            String cityCode = sharedPreferences.getString("main_city_code", "101010100");
+            SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE); //获得SharedPreference对象，Context的方法
+            String cityCode = sharedPreferences.getString("main_city_code", "101020100");//默认值
             Log.d("myWeather", cityCode);
 
             if (NetUtil.getNetworkState(this) != NetUtil.NETWORN_NONE) {
@@ -127,7 +128,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             if (NetUtil.getNetworkState(this) != NetUtil.NETWORN_NONE) {
                 Log.d("myWeather", "网络OK");
                 Toast.makeText(MainActivity.this, "网络OK！ ", Toast.LENGTH_LONG).show();
-                queryWeatherCode(newCityCode);
+               queryWeatherCode(newCityCode); //cityCode不一样，API提供的内容可能不一样，解析可能有错误
+                Toast.makeText(MainActivity.this,"选择城市代码"+newCityCode,Toast.LENGTH_LONG).show();
             } else {
                 Log.d("myWeather", "网络挂了");
                 Toast.makeText(MainActivity.this, "网络挂了！ ", Toast.LENGTH_LONG).show();
@@ -146,16 +148,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Log.d("myWeather", address);
         new Thread(new Runnable() {
             @Override
-            public void run() {
+            public void run() {  //子线程启动，传递message给主线程
                 HttpURLConnection con = null;
                 TodayWeather todayWeather = null;
                 try {
                     Log.d("myWeather", "InputOUtBegin");
-                    URL url = new URL(address);
-                    con = (HttpURLConnection) url.openConnection();
-                    con.setRequestMethod("GET");
-                    con.setConnectTimeout(8000);
-                    con.setReadTimeout(8000);
+                    URL url = new URL(address); //url 无效连接会怎样，无法更新
+                    con = (HttpURLConnection) url.openConnection(); //打开链接
+                    con.setRequestMethod("GET"); //使用GET方法, 提交表单POST方法
+                    con.setConnectTimeout(8000); //8s，连接超时
+                    con.setReadTimeout(8000); //读超时
                     Log.d("myWeather", "connection established");
                     InputStream in = con.getInputStream();
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in));
@@ -171,16 +173,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
                     todayWeather = parseXML(responseStr);
                     if (todayWeather != null) {
                         Log.d("myWeather", todayWeather.toString());
-                        Message msg = new Message();
-                        msg.what = UPDATE_TODAY_WEATHER;
+                        Message msg = new Message(); //新建Message
+                        msg.what = UPDATE_TODAY_WEATHER; //便于主线程识别的id
                         msg.obj = todayWeather;
-                        mHandler.sendMessage(msg);
+                        mHandler.sendMessage(msg); //mHandler
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     if (con != null) {
-                        con.disconnect();
+                        con.disconnect(); //关闭连接
                     }
                 }
             }
@@ -189,13 +191,16 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private TodayWeather parseXML(String xmldata) {
         TodayWeather todayWeather = null;
-        int fengxiangCount = 0;
+        int fengxiangCount = 0; //有多个日期的风向，
+        // 昨天、今天、后几天，API一般显示第一天在前，防止重复更新
+        // 如果返回的城市没有天气信息，程序会崩溃……
+        // 尝试设today各项值为N/
         int fengliCount = 0;
         int dateCount = 0;
         int highCount = 0;
         int lowCount = 0;
         int typeCount = 0;
-//        int wendu = 0;
+        int pm25Count = 0;
         try {
             XmlPullParserFactory fac = XmlPullParserFactory.newInstance();
             XmlPullParser xmlPullParser = fac.newPullParser();
@@ -231,6 +236,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                 todayWeather.setWendu(xmlPullParser.getText());
                             } else if (xmlPullParser.getName().equals("pm25")) {
                                 eventType = xmlPullParser.next();
+                                pm25Count++;
                                 Log.d("myWeather", "pm25: " + xmlPullParser.getText());
                                 todayWeather.setPm25(xmlPullParser.getText());
                             } else if (xmlPullParser.getName().equals("quality")) {
@@ -284,6 +290,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
         {
             e.printStackTrace();
         }
+        if(pm25Count == 0) {
+            todayWeather.setQuality("N/A");
+            todayWeather.setPm25("N/A");
+        }
         return todayWeather;
     }
 
@@ -300,19 +310,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
         windTv.setText("风力:" + todayWeather.getFengli());
         temperatureNowTv.setText("温度：" + todayWeather.getWendu() + "℃");
         // set pmImg
-        int pm25 = Integer.parseInt(todayWeather.getPm25());
-        if (pm25 >= 0 && pm25 <= 50) {
-            pmImg.setImageResource(R.drawable.biz_plugin_weather_0_50);
-        } else if (pm25 >= 51 && pm25 <= 100)
-            pmImg.setImageResource(R.drawable.biz_plugin_weather_51_100);
-        else if (pm25 >= 101 && pm25 <= 150)
-            pmImg.setImageResource(R.drawable.biz_plugin_weather_101_150);
-        else if (pm25 >= 151 && pm25 <= 200)
-            pmImg.setImageResource(R.drawable.biz_plugin_weather_151_200);
-        else if (pm25 >= 201 && pm25 <= 300)
-            pmImg.setImageResource(R.drawable.biz_plugin_weather_201_300);
-        else pmImg.setImageResource(R.drawable.biz_plugin_weather_greater_300);
-
+        if(!todayWeather.getPm25().equals("N/A")) {
+            int pm25 = Integer.parseInt(todayWeather.getPm25());
+            if (pm25 >= 0 && pm25 <= 50) {
+                pmImg.setImageResource(R.drawable.biz_plugin_weather_0_50);
+            } else if (pm25 >= 51 && pm25 <= 100)
+                pmImg.setImageResource(R.drawable.biz_plugin_weather_51_100);
+            else if (pm25 >= 101 && pm25 <= 150)
+                pmImg.setImageResource(R.drawable.biz_plugin_weather_101_150);
+            else if (pm25 >= 151 && pm25 <= 200)
+                pmImg.setImageResource(R.drawable.biz_plugin_weather_151_200);
+            else if (pm25 >= 201 && pm25 <= 300)
+                pmImg.setImageResource(R.drawable.biz_plugin_weather_201_300);
+            else pmImg.setImageResource(R.drawable.biz_plugin_weather_greater_300);
+        }
         //set weatherImg
 
         switch (todayWeather.getType()) {

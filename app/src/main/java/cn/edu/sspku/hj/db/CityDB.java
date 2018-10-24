@@ -20,7 +20,7 @@ public class CityDB {
 
     public List<City> getAllCity() {
         List<City> list = new ArrayList<City>();
-        Cursor c = db.rawQuery("SELECT * from " + CITY_TABLE_NAME, null);
+        Cursor c = db.rawQuery("SELECT * from " + CITY_TABLE_NAME, null); //rawQuerry
         while (c.moveToNext()) {
             String province = c.getString(c.getColumnIndex("province"));
             String city = c.getString(c.getColumnIndex("city"));

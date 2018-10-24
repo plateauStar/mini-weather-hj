@@ -14,6 +14,21 @@ public class TodayWeather {
     private String low;
     private String type;
 
+    public TodayWeather() {
+        this.city = "N/A";
+        this.updatetime = "N/A";
+        this.wendu = "N/A";
+        this.shidu = "N/A";
+        this.pm25 = "N/A";
+        this.quality = "N/A";
+        this.fengxiang = "N/A";
+        this.fengli = "N/A";
+        this.date = "N/A";
+        this.high = "N/A";
+        this.low = "N/A";
+        this.type = "N/A";
+    }
+
     public String getCity() {
         return city;
     }
