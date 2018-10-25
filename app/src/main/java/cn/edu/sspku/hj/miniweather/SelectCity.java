@@ -4,16 +4,20 @@ package cn.edu.sspku.hj.miniweather;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import cn.edu.sspku.hj.app.MyApplication;
@@ -25,10 +29,15 @@ public class SelectCity extends Activity implements View.OnClickListener {
     private ImageView mbackBtn;
     private TextView mcitySelect;
     private ListView mlistView;
-    private String returnCode = "101010100"; //默认值为北京的代码
+    private SearchView searchView;
+
     private MyApplication myApplication;
-    private ArrayList<String> mcityCodeList = new ArrayList<>();
-    private ArrayList<String> mcityNameList = new ArrayList<>();
+    private ArrayList<String> mcityCodeAndNameList = new ArrayList<>();
+    private ArrayList<String> mSearchResult;
+
+    private ArrayAdapter<String> adapter;
+
+    private String returnCode = "101010100"; //默认值为北京的代码
 
 
     @Override
@@ -43,10 +52,41 @@ public class SelectCity extends Activity implements View.OnClickListener {
         mlistView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Toast.makeText(SelectCity.this, "你选择" + mcityNameList.get(position)
-                        + mcityCodeList.get(position), Toast.LENGTH_SHORT).show();
-                returnCode = mcityCodeList.get(position);
-                mcitySelect.setText("当前城市：" + mcityNameList.get(position));
+                Toast.makeText(SelectCity.this, "你选择" + mSearchResult.get(position), Toast.LENGTH_SHORT).show();
+                returnCode = mSearchResult.get(position).substring(0, 9);
+                Log.d("Msea", returnCode);
+                mcitySelect.setText("当前城市：" +
+                        mSearchResult.get(position).substring(9));
+            }
+        });
+
+        searchView = (SearchView) findViewById(R.id.search);
+        searchView.setIconified(true);
+        searchView.setQueryHint("请输入城市名称");
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                //实际不搜索，文本框一变化就自动执行搜索
+                Toast.makeText(SelectCity.this, "检索中", Toast.LENGTH_SHORT).show();
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) { //newText先搜汉字的，后面升级拼音模糊搜索
+                if (!TextUtils.isEmpty(newText)) {
+                    Toast.makeText(SelectCity.this, "开始执行搜索", Toast.LENGTH_SHORT).show();
+                    if (mSearchResult != null)
+                        mSearchResult.clear();
+                    for (String str : mcityCodeAndNameList) {
+                        if (str.contains(newText)) {
+                            mSearchResult.add(str);
+                        }
+                    }
+                    adapter.notifyDataSetChanged();
+                }
+                //后期改filter实现？实现filterable接口
+                return true; //return true 和 false 有什么区别？
             }
         });
 
@@ -58,14 +98,12 @@ public class SelectCity extends Activity implements View.OnClickListener {
         myApplication = MyApplication.getInstance();
         ArrayList<City> mCityList = (ArrayList<City>) myApplication.getCityList();
         for (City city : mCityList) {
-            mcityCodeList.add(city.getNumber());
-            mcityNameList.add(city.getCity());
+            mcityCodeAndNameList.add(city.getNumber() + city.getCity());
         }
-        ArrayAdapter<String> adapter = new ArrayAdapter<> //新建适配器
-                (SelectCity.this, android.R.layout.simple_list_item_1, mcityNameList);
+        mSearchResult = new ArrayList<>(mcityCodeAndNameList); //浅拷贝
+        adapter = new ArrayAdapter<> //新建适配器
+                (SelectCity.this, android.R.layout.simple_list_item_1, mSearchResult);
         mlistView.setAdapter(adapter); //接上适配器
-
-
     }
 
     @Override
