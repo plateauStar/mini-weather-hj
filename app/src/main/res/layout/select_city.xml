@@ -32,12 +32,12 @@
         android:gravity="center"
         />
     </RelativeLayout>
+
     <SearchView
         android:id="@+id/search"
         android:layout_width="match_parent"
         android:layout_height="45dp"
         >
-
     </SearchView>
     <ListView
         android:id="@+id/city_list"
