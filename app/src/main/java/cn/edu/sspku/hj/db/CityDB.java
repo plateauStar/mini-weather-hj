@@ -18,9 +18,13 @@ public class CityDB {
         db = context.openOrCreateDatabase(path, Context.MODE_PRIVATE, null);
     }
 
+    public Cursor getCursor(){
+        return db.rawQuery("SELECT * from " + CITY_TABLE_NAME +" ORDER BY "+"firstpy", null);
+    }
+
     public List<City> getAllCity() {
         List<City> list = new ArrayList<City>();
-        Cursor c = db.rawQuery("SELECT * from " + CITY_TABLE_NAME, null); //rawQuerry
+        Cursor c = this.getCursor(); //rawQuerry，获取整个表
         while (c.moveToNext()) {
             String province = c.getString(c.getColumnIndex("province"));
             String city = c.getString(c.getColumnIndex("city"));

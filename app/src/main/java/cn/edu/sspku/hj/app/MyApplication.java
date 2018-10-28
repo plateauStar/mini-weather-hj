@@ -4,6 +4,7 @@ import cn.edu.sspku.hj.bean.City;
 import cn.edu.sspku.hj.db.CityDB;
 
 import android.app.Application;
+import android.database.Cursor;
 import android.os.Environment;
 import android.util.Log;
 
@@ -18,7 +19,7 @@ import java.util.ArrayList;
 public class MyApplication extends Application {
     private static final String TAG = "MyAPP";
 
-    private static MyApplication mApplication;
+    private static MyApplication mApplication;//静态
 
     private CityDB mCityDB;
 
@@ -29,7 +30,7 @@ public class MyApplication extends Application {
         super.onCreate();
         Log.d(TAG, "MyApplication->Oncreate");
         mApplication = this;
-        mCityDB = openCityDB();
+        mCityDB = openCityDB(); //返回database对象
         initCityList();
     }
 
@@ -37,7 +38,7 @@ public class MyApplication extends Application {
         mCityList = new ArrayList<City>();
         new Thread(new Runnable() {
             @Override
-            public void run() {
+            public void run() {     //启动子线程
 // TODO Auto-generated method stub
                 prepareCityList();
             }
@@ -46,15 +47,19 @@ public class MyApplication extends Application {
 
     private boolean prepareCityList() {
         mCityList = mCityDB.getAllCity();
-        int i = 0;
-        for (City city : mCityList) {
-            i++;
-            String cityName = city.getCity();
-            String cityCode = city.getNumber();
-            Log.d(TAG, cityCode + ":" + cityName);
-        }
-        Log.d(TAG, "i=" + i);
+//        int i = 0;
+//        for (City city : mCityList) {
+//            i++;
+//            String cityName = city.getCity();
+//            String cityCode = city.getNumber();
+//            Log.d(TAG, cityCode + ":" + cityName);
+//        }
+//        Log.d(TAG, "i=" + i);
         return true;
+    }
+
+    public Cursor getCursor(){
+        return mCityDB.getCursor();
     }
 
     public List<City> getCityList() {
@@ -66,7 +71,7 @@ public class MyApplication extends Application {
     }
 
     private CityDB openCityDB() {
-        String path = "/data"
+        String path = "/data" //获得绝对路径
                 + Environment.getDataDirectory().getAbsolutePath
                 ()
                 + File.separator + getPackageName()
@@ -88,11 +93,11 @@ public class MyApplication extends Application {
             }
             Log.i("MyApp", "db is not exists");
             try {
-                InputStream is = getAssets().open("city.db");
-                FileOutputStream fos = new FileOutputStream(db);
+                InputStream is = getAssets().open("city.db");//读入原始数据库信息
+                FileOutputStream fos = new FileOutputStream(db);//将读入的原始数据写入db
                 int len = -1;
                 byte[] buffer = new byte[1024];
-                while ((len = is.read(buffer)) != -1) {
+                while ((len = is.read(buffer)) != -1) { //inputStream读入字节流
                     fos.write(buffer, 0, len);
                     fos.flush();
                 }

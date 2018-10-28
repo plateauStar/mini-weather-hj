@@ -1,6 +1,8 @@
 package cn.edu.sspku.hj.bean;
 
-public class City {
+import android.support.annotation.NonNull;
+
+public class City implements Comparable{
     private String province;
     private String city;
     private String number;
@@ -15,6 +17,11 @@ public class City {
         this.firstPY = firstPY;
         this.allPY = allPY;
         this.allFirstPY = allFirstPY;
+    }
+
+    @Override
+    public int compareTo(@NonNull Object o) {
+        return allPY.compareTo(((City) o).getFirstPY());
     }
 
     public String getProvince() {
