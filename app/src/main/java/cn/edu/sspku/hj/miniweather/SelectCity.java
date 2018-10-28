@@ -45,14 +45,14 @@ public class SelectCity extends Activity implements View.OnClickListener {
     private ArrayList<City> mCityList = new ArrayList<>();
     private ArrayList<City> mSearchResult = new ArrayList<>(); //搜索结果，只放城市名
 
-    private SearchAdapter searchAdapter;
+    private SearchAdapter searchAdapter = null;
     private CityAdapter adapter;
 
     private AlphabetIndexer indexer;
     private String alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    private int lastFirstVisibleItem = -1;
-    private int searchCount = 0;
+    //    private int lastFirstVisibleItem = -1;
+    private boolean notSearch = true;
 
     private String returnCode = "101010100"; //默认值为北京的代码
 
@@ -69,7 +69,12 @@ public class SelectCity extends Activity implements View.OnClickListener {
         mlistView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                City returnCity = mSearchResult.get(position);
+                City returnCity;
+                if(!notSearch)
+                {
+                    returnCity = mSearchResult.get(position);
+                }
+                else returnCity = mCityList.get(position);
                 Toast.makeText(SelectCity.this, "你选择" + returnCity.getCity(),
                         Toast.LENGTH_SHORT).show();
                 returnCode = returnCity.getNumber();
@@ -85,6 +90,7 @@ public class SelectCity extends Activity implements View.OnClickListener {
             public boolean onQueryTextChange(String newText) {
                 if (!TextUtils.isEmpty(newText)) { //搜索栏不空时，执行搜索
                     mSearchResult.clear();
+                    notSearch = false;
                     //遍历城市列表，当前城市包含当前搜索框文字，或拼音包含当前搜索框拼音，则认为该城市符合要求，放入mSearchResult
                     for (City city : mCityList) {
                         if (city.getCity().contains(newText) ||
@@ -94,17 +100,17 @@ public class SelectCity extends Activity implements View.OnClickListener {
                             mSearchResult.add(city);
                         }
                     }
-                    if(searchCount == 0)
-                    {
-                        searchAdapter = new SearchAdapter(SelectCity.this,R.layout.city_item,
+
+                        searchAdapter = new SearchAdapter(SelectCity.this, R.layout.city_item,
                                 mSearchResult);
-                        searchCount++;
-                        mlistView.setAdapter(searchAdapter);
-                    }
+
+                    mlistView.setAdapter(searchAdapter);
                     listViewTopLayout.setVisibility(View.GONE);
                     searchAdapter.notifyDataSetChanged();
+                } else {
+                    notSearch = true;
+                    mlistView.setAdapter(adapter);
                 }
-                //else mlistView.setAdapter(adapter);
                 return true;
             }
 
@@ -124,15 +130,11 @@ public class SelectCity extends Activity implements View.OnClickListener {
 
         myApplication = MyApplication.getInstance();
         mCityList = (ArrayList<City>) myApplication.getCityList();
-        for (City city:mCityList)
+        for (City city : mCityList)
             mSearchResult.add(city);
-
-
         Cursor cursor = myApplication.getCursor();
         startManagingCursor(cursor);
         indexer = new AlphabetIndexer(cursor, 6, alphabet);
-
-
         adapter = new CityAdapter //新建适配器
                 (SelectCity.this, R.layout.city_item, mCityList);
         adapter.setmIndexer(indexer);
@@ -150,40 +152,12 @@ public class SelectCity extends Activity implements View.OnClickListener {
             public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
                                  int totalItemCount) {
                 int section = indexer.getSectionForPosition(firstVisibleItem);
-                int nextSecPosition = indexer.getPositionForSection(section + 1);
-                if (firstVisibleItem != lastFirstVisibleItem) {
-                    ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) listViewTopLayout.getLayoutParams();
-                    params.topMargin = 0;
-                    listViewTopLayout.setLayoutParams(params);
-                    listViewFirstLine.setText(String.valueOf(alphabet.charAt(section)));
-                }
-                if (nextSecPosition == firstVisibleItem + 1) {
-                    View childView = view.getChildAt(0);
-                    if (childView != null) {
-                        int titleHeight = listViewTopLayout.getHeight();
-                        int bottom = childView.getBottom();
-                        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) listViewTopLayout
-                                .getLayoutParams();
-                        if (bottom < titleHeight) {
-                            float pushedDistance = bottom - titleHeight;
-                            params.topMargin = (int) pushedDistance;
-                            listViewTopLayout.setLayoutParams(params);
-                        } else {
-                            if (params.topMargin != 0) {
-                                params.topMargin = 0;
-                                listViewTopLayout.setLayoutParams(params);
-                            }
-                        }
-                    }
-                }
-                lastFirstVisibleItem = firstVisibleItem;
+//                if(firstVisibleItem == indexer.getPositionForSection(section))
+//                    listViewTopLayout.setVisibility(View.INVISIBLE);
+//                else listViewTopLayout.setVisibility(View.VISIBLE);
+                listViewFirstLine.setText(String.valueOf(alphabet.charAt(section)));
             }
         });
-//        ---------------------
-//                作者：guolin
-//        来源：CSDN
-//        原文：https://blog.csdn.net/guolin_blog/article/details/9033553
-//        版权声明：本文为博主原创文章，转载请附上博文链接！
     }
 
 
