@@ -10,6 +10,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,6 +37,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     private static final int UPDATE_TODAY_WEATHER = 1;
 
     private ImageView mUpdateBtn;
+    private ProgressBar mProgressBar;
     private ImageView mCitySelect;
     private TextView cityTv, timeTv, humidityTv, weekTv, pmDataTv,
             pmQualityTv, temperatureTv, temperatureNowTv, climateTv, windTv, city_name_Tv;
@@ -60,6 +62,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         setContentView(R.layout.weather_info);
         mUpdateBtn = (ImageView) findViewById(R.id.title_update_btn);
         mUpdateBtn.setOnClickListener(this);
+        mProgressBar = (ProgressBar) findViewById(R.id.updating_bar);
         if (NetUtil.getNetworkState(this) != NetUtil.NETWORN_NONE) {
             Log.d("myWeather", "网络OK");
             Toast.makeText(MainActivity.this, "网络OK！ ", Toast.LENGTH_LONG).show();
@@ -106,6 +109,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
             startActivityForResult(i, 1);
         }
         if (view.getId() == R.id.title_update_btn) {
+            setUpdateVisible(0);
+            timeTv.setText("同步中……");
             SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE); //获得SharedPreference对象，Context的方法
             String cityCode = sharedPreferences.getString("main_city_code", "101020100");//默认值
             Log.d("myWeather", cityCode);
@@ -298,6 +303,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     void updateTodayWeather(TodayWeather todayWeather) {
+
+
+
         city_name_Tv.setText(todayWeather.getCity() + "天气");
         cityTv.setText(todayWeather.getCity());
         timeTv.setText(todayWeather.getUpdatetime() + "发布");
@@ -327,6 +335,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         //set weatherImg
 
         switch (todayWeather.getType()) {
+
             case "多云":
                 weatherImg.setImageResource(R.drawable.biz_plugin_weather_duoyun);
                 break;
@@ -392,8 +401,21 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
 
         }
-
+        setUpdateVisible(1);
         Toast.makeText(MainActivity.this, "更新成功！ ", Toast.LENGTH_SHORT).show();
+    }
+    void setUpdateVisible(int flag){
+        if(flag==1)
+        {
+            mProgressBar.setVisibility(View.GONE);
+            mUpdateBtn.setVisibility(View.VISIBLE);
+        }
+        else
+
+        {
+            mProgressBar.setVisibility(View.VISIBLE);
+            mUpdateBtn.setVisibility(View.GONE);
+        }
     }
 }
 
