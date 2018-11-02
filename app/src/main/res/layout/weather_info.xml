@@ -14,6 +14,16 @@
         <!--今日天气信息-->
         <include layout="@layout/city_today" />
         <!--六日天气信息-->
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/days_after_info"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="15dp"
+            android:layout_marginRight="15dp"
+            android:layout_marginTop="10dp">
+
+        </android.support.v7.widget.RecyclerView>
+
 
         <!--广告等信息-->
     </LinearLayout>
