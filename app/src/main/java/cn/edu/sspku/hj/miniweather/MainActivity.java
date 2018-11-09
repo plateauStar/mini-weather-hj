@@ -16,6 +16,11 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.baidu.location.BDLocation;
+import com.baidu.location.BDLocationListener;
+import com.baidu.location.LocationClient;
+import com.baidu.location.LocationClientOption;
+
 import java.io.IOException;
 import java.lang.Exception;
 
@@ -27,22 +32,26 @@ import java.net.HttpURLConnection;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 import org.xmlpull.v1.XmlPullParserFactory;
 
 
+import cn.edu.sspku.hj.app.MyApplication;
+import cn.edu.sspku.hj.bean.City;
 import cn.edu.sspku.hj.util.NetUtil;
 import cn.edu.sspku.hj.bean.TodayWeather;
 
 public class MainActivity extends Activity implements View.OnClickListener {
 
     private static final int UPDATE_TODAY_WEATHER = 1;
+    public LocationClient mLocationClient = null;
 
     private ImageView mUpdateBtn;
     private ProgressBar mProgressBar;
-    private ImageView mCitySelect;
+    private ImageView mCitySelect, mLocationImg;
     private TextView cityTv, timeTv, humidityTv, weekTv, pmDataTv,
             pmQualityTv, temperatureTv, temperatureNowTv, climateTv, windTv, city_name_Tv;
     private ImageView weatherImg, pmImg;
@@ -71,6 +80,27 @@ public class MainActivity extends Activity implements View.OnClickListener {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.weather_info);
+
+        mLocationClient = new LocationClient(getApplicationContext());
+        //声明LocationClient类
+        mLocationClient.registerLocationListener(new MyLocationListener());
+        //注册监听函数
+        LocationClientOption option = new LocationClientOption();
+        option.setIsNeedAddress(true);
+        option.setAddrType("all");
+        option.setIgnoreKillProcess(false);
+        //可选，是否需要地址信息，默认为不需要，即参数为false
+        //如果开发者需要获得当前点的地址信息，此处必须为true
+        option.setScanSpan(5000);              // 设置定时定位的时间间隔。单位毫秒
+//        option.setLocationMode(LocationClientOption.LocationMode.Device_Sensors);
+        mLocationClient.setLocOption(option);
+        //mLocationClient为第二步初始化过的LocationClient对象
+        //需将配置好的LocationClientOption对象，通过setLocOption方法传递给LocationClient对象使用
+        //更多LocationClientOption的配置，请参照类参考中LocationClientOption类的详细说明
+
+
+
+
         mRecyclerView = (RecyclerView) findViewById(R.id.days_after_info);
         //设置布局管理器
         LinearLayoutManager linearLayoutManager = new LinearLayoutManager(this);
@@ -108,6 +138,14 @@ public class MainActivity extends Activity implements View.OnClickListener {
         climateTv = (TextView) findViewById(R.id.climate);
         windTv = (TextView) findViewById(R.id.wind);
         weatherImg = (ImageView) findViewById(R.id.weather_img);
+//        cityInfoTv = findViewById(R.id.cityInfo);   //  显示获取城市信息按钮
+        mLocationImg = findViewById(R.id.title_location); // 定位按钮
+        mLocationImg.setOnClickListener(MainActivity.this);
+
+
+
+
+
         city_name_Tv.setText("N/A");
         cityTv.setText("N/A");
         timeTv.setText("N/A");
@@ -128,7 +166,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
         if (view.getId() == R.id.title_update_btn) {
             setUpdateVisible(0);
-
             SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE); //获得SharedPreference对象，Context的方法
             String cityCode = sharedPreferences.getString("main_city_code", "101020100");//默认值
             Log.d("myWeather", cityCode);
@@ -143,11 +180,19 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Toast.makeText(MainActivity.this, "网络挂了！ ", Toast.LENGTH_LONG).show();
             }
         }
+        if (view.getId() == R.id.title_location) {
+            timeTv.setText("定位中……");
+            mLocationClient.start();
+            setUpdateVisible(0);
+//            mLocationImg.setVisibility(View.GONE);
+
+        }
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == 1 && resultCode == RESULT_OK) {
             String newCityCode = data.getStringExtra("cityCode");
+            setPreference(newCityCode);
             Log.d("myWeather", "选择的城市代码为：" + newCityCode);
             //cityCode不一样，API提供的内容可能不一样，解析可能有错误
             if (NetUtil.getNetworkState(this) != NetUtil.NETWORN_NONE) {
@@ -155,13 +200,20 @@ public class MainActivity extends Activity implements View.OnClickListener {
                 Toast.makeText(MainActivity.this, "网络OK！ ", Toast.LENGTH_LONG).show();
                 timeTv.setText("同步中……");
                 queryWeatherCode(newCityCode);
-                Toast.makeText(MainActivity.this,"选择城市代码"+newCityCode,Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "选择城市代码" + newCityCode, Toast.LENGTH_LONG).show();
             } else {
                 Log.d("myWeather", "网络挂了");
                 Toast.makeText(MainActivity.this, "网络挂了！ ", Toast.LENGTH_LONG).show();
             }
         }
 
+    }
+
+    private void setPreference(String newCityCode) {
+        SharedPreferences sharedPreferences = getPreferences(MODE_PRIVATE); //获得SharedPreference对象，Context的方法
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString("main_city_code", newCityCode);
+        editor.apply();
     }
 
     /**
@@ -205,10 +257,9 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         msg.obj = todayWeather;
                         mHandler.sendMessage(msg); //mHandler
                     }
-                } catch (SocketTimeoutException e)
-                {
+                } catch (SocketTimeoutException e) {
                     e.printStackTrace();
-                }   catch (Exception e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     if (con != null) {
@@ -248,7 +299,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
                         if (xmlPullParser.getName().equals("resp")) {
                             todayWeather = new TodayWeather();
                             todayWeatherArrayList = new ArrayList<>();
-                                           }
+                        }
                         if (todayWeather != null) {
                             if (xmlPullParser.getName().equals("city")) {
                                 xmlPullParser.next();
@@ -275,60 +326,57 @@ public class MainActivity extends Activity implements View.OnClickListener {
                                 xmlPullParser.next();
                                 Log.d("myWeather", "quality: " + xmlPullParser.getText());
                                 todayWeather.setQuality(xmlPullParser.getText());
-                            } else if (xmlPullParser.getName().equals("fengxiang") ) {
+                            } else if (xmlPullParser.getName().equals("fengxiang")) {
                                 xmlPullParser.next();
-                                if(item != null)
+                                if (item != null)
                                     item.setFengxiang(xmlPullParser.getText());
-                                if(fengxiangCount == 0)
-                                todayWeather.setFengxiang(xmlPullParser.getText());
+                                if (fengxiangCount == 0)
+                                    todayWeather.setFengxiang(xmlPullParser.getText());
                                 fengxiangCount++;
                             } else if (xmlPullParser.getName().equals("fengli")) {
                                 xmlPullParser.next();
-                                if(item != null && fengliCount>0 && fengliCount%2==0)
+                                if (item != null && fengliCount > 0 && fengliCount % 2 == 0)
                                     item.setFengli(xmlPullParser.getText());
-                                if(fengliCount == 0)
-                                todayWeather.setFengli(xmlPullParser.getText());
+                                if (fengliCount == 0)
+                                    todayWeather.setFengli(xmlPullParser.getText());
                                 fengliCount++;
                             } else if (xmlPullParser.getName().equals("date")) {
                                 xmlPullParser.next();
-                                if(item != null)
-                                    item.setDate(xmlPullParser.getText().substring(2).trim());
-                                if(dateCount == 0)
-                                    {
-                                        todayWeather.setDate(xmlPullParser.getText());
-                                        dateCount++;
-                                    }
-                            } else if (xmlPullParser.getName().equals("high") ) {
+                                if (item != null)
+                                    item.setDate(xmlPullParser.getText().split("日")[1]);
+                                if (dateCount == 0) {
+                                    todayWeather.setDate(xmlPullParser.getText());
+                                    dateCount++;
+                                }
+                            } else if (xmlPullParser.getName().equals("high")) {
                                 xmlPullParser.next();
-                                if(item != null)
+                                if (item != null)
                                     item.setHigh(xmlPullParser.getText().substring(2).trim());
-                                if(highCount == 0)
-                                todayWeather.setHigh(xmlPullParser.getText().substring(2).trim());
+                                if (highCount == 0)
+                                    todayWeather.setHigh(xmlPullParser.getText().substring(2).trim());
                                 highCount++;
                             } else if (xmlPullParser.getName().equals("low")) {
                                 xmlPullParser.next();
-                                if(item != null)
+                                if (item != null)
                                     item.setLow(xmlPullParser.getText().substring(2).trim());
-                                if( lowCount == 0)
+                                if (lowCount == 0)
                                     todayWeather.setLow(xmlPullParser.getText().substring(2).trim());
                                 lowCount++;
                             } else if (xmlPullParser.getName().equals("type")) {
                                 xmlPullParser.next();
-                                if(item != null)
+                                if (item != null)
                                     item.setType(xmlPullParser.getText());
-                                if(typeCount == 0)
-                                todayWeather.setType(xmlPullParser.getText());
+                                if (typeCount == 0)
+                                    todayWeather.setType(xmlPullParser.getText());
                                 typeCount++;
-                            } else if(xmlPullParser.getName().equals(("weather")))
-                            {
-                                item =new TodayWeather();
+                            } else if (xmlPullParser.getName().equals(("weather"))) {
+                                item = new TodayWeather();
                             }
                             break;
                         }
                         // 判断当前事件是否为标签元素结束事件
                     case XmlPullParser.END_TAG: {
-                        if(xmlPullParser.getName().equals("weather"))
-                        {
+                        if (xmlPullParser.getName().equals("weather")) {
                             todayWeatherArrayList.add(item);
                         }
                         break;
@@ -352,17 +400,6 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         todayWeatherArrayList.remove(0);
 
-        for(TodayWeather to: todayWeatherArrayList)
-        {
-
-            Log.d("Recycle",to.getDate());
-            Log.d("Recycle",to.getType());
-            Log.d("Recycle",to.getFengli());
-            Log.d("Recycle",to.getLow());
-            Log.d("Recycle",to.getHigh());
-
-
-        }
         return todayWeather;
 
     }
@@ -381,7 +418,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         windTv.setText("风力:" + todayWeather.getFengli());
         temperatureNowTv.setText("温度：" + todayWeather.getWendu() + "℃");
         // set pmImg
-        if(!todayWeather.getPm25().equals("N/A")) {
+        if (!todayWeather.getPm25().equals("N/A")) {
             int pm25 = Integer.parseInt(todayWeather.getPm25());
             if (pm25 >= 0 && pm25 <= 50) {
                 pmImg.setImageResource(R.drawable.biz_plugin_weather_0_50);
@@ -403,8 +440,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Toast.makeText(MainActivity.this, "更新成功！ ", Toast.LENGTH_SHORT).show();
     }
 
-    public void setWeatherImage(ImageView weatherImg, String type)
-    {
+    public void setWeatherImage(ImageView weatherImg, String type) {
         switch (type) {
 
             case "多云":
@@ -472,17 +508,56 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }
     }
 
-    void setUpdateVisible(int flag){
-        if(flag==1)
-        {
+    void setUpdateVisible(int flag) {
+        if (flag == 1) {
             mProgressBar.setVisibility(View.GONE);
             mUpdateBtn.setVisibility(View.VISIBLE);
-        }
-        else
-        {
+        } else {
             mProgressBar.setVisibility(View.VISIBLE);
             mUpdateBtn.setVisibility(View.GONE);
         }
+    }
+
+
+    public class MyLocationListener implements BDLocationListener {
+
+        @Override
+        public void onReceiveLocation(BDLocation location){
+            //此处的BDLocation为定位结果信息类，通过它的各种get方法可获取定位相关的全部结果
+            //以下只列举部分获取地址相关的结果信息
+            //更多结果信息获取说明，请参照类参考中BDLocation类中的说明
+
+            String city = null;
+            city = location.getCity();    //获取城市
+           // Toast.makeText(MainActivity.this,"city+"+city,Toast.LENGTH_LONG).show();
+//            cityInfoTv.setText(city);
+            setUpdateVisible(1);
+
+            if(city.trim().length() != 0)
+            {
+                MyApplication myApplicationForMain = MyApplication.getInstance();
+                List<City> cityList = myApplicationForMain.getCityList();
+                for(City tempCity:cityList)
+                {
+                    if(city.contains(tempCity.getCity()))
+                    {
+                        queryWeatherCode(tempCity.getNumber());
+                        setPreference(tempCity.getNumber());
+//                        mLocationImg.setVisibility(View.VISIBLE);
+                        mLocationClient.stop();
+                        break;
+                    }
+                }
+            }
+            else {
+//                mLocationImg.setVisibility(View.VISIBLE);
+                Toast.makeText(MainActivity.this,"定位失败，请打开gps",
+                    Toast.LENGTH_LONG).show();
+                timeTv.setText("定位失败，请使用搜索功能");
+            }
+        }
+
+
     }
 }
 

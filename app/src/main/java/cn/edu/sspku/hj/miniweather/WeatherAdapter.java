@@ -48,7 +48,7 @@ public class WeatherAdapter extends RecyclerView.Adapter <WeatherAdapter.ViewHol
     public void onBindViewHolder(ViewHolder holder, int position) {
         TodayWeather futureWeather = mWeatherList.get(position);
         holder.dayOfWeekV.setText(futureWeather.getDate());
-        holder.temperatureOfDayV.setText(futureWeather.getHigh()+"~"+futureWeather.getLow());
+        holder.temperatureOfDayV.setText(futureWeather.getHigh()+" ~ "+futureWeather.getLow());
         holder.typeOfDayV.setText(futureWeather.getType());
         holder.windOfDayV.setText(futureWeather.getFengli());
         setWeatherImage2(holder.weatherIconV,holder.typeOfDayV.getText().toString());
